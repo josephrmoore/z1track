@@ -12,6 +12,7 @@ not touch RAM, ROM, or the network itself.
 """
 from __future__ import annotations
 
+import json
 import os
 import sys
 import tkinter as tk
@@ -22,6 +23,7 @@ from z1rtrack import state as statelib  # noqa: E402
 HERE = os.path.dirname(os.path.abspath(__file__))
 SPRITES = os.path.join(HERE, "sprites")
 STATE_FILE = os.path.join(HERE, "tracker_state.json")
+NOTES_FILE = os.path.join(HERE, "manual_notes.json")
 POLL_MS = 250
 
 BG_W, BG_H = 646, 287
@@ -161,6 +163,52 @@ def _inv_icon_for(inv: dict, key: str) -> "list[str] | None":
     return None
 
 
+def _owned_item_sprites(inv: dict) -> list:
+    """Every individually-selectable major item the player currently owns, as
+    (sprite_path, label) pairs, for the manual dungeon-box picker. Tiered
+    items only offer their current tier (matching the inventory grid); this
+    is a flat list of single items (not the combined bow+arrow display), one
+    item per dungeon box being the whole point."""
+    out = []
+
+    def add(cond, sprite, label):
+        if cond:
+            out.append((sprite, label))
+
+    add(inv["bow"]["have"], "items/bow.png", "Bow")
+    if inv["arrow"]["value"] == 2:
+        out.append(("items/silverarrows.png", "Silver Arrows"))
+    elif inv["arrow"]["value"] == 1:
+        out.append(("items/arrow.png", "Arrow"))
+    if inv["candle"]["value"] == 2:
+        out.append(("items/red candle.png", "Red Candle"))
+    elif inv["candle"]["value"] == 1:
+        out.append(("items/blue candle.png", "Blue Candle"))
+    if inv["ring"]["value"] == 2:
+        out.append(("items/red ring.png", "Red Ring"))
+    elif inv["ring"]["value"] == 1:
+        out.append(("items/bluering.png", "Blue Ring"))
+    if inv["potion"]["value"] == 2:
+        out.append(("items/red potion.png", "Red Potion"))
+    elif inv["potion"]["value"] == 1:
+        out.append(("items/blue potion.png", "Blue Potion"))
+    elif inv["letter"]["have"]:
+        out.append(("items/letter.png", "Letter"))
+    if inv["mag_boomerang"]["have"]:
+        out.append(("items/magic boomerang.png", "Magic Boomerang"))
+    elif inv["boomerang"]["have"]:
+        out.append(("items/boomerang.png", "Boomerang"))
+    add(inv["recorder"]["have"], "items/recorder.png", "Recorder")
+    add(inv["bait"]["have"], "items/meat.png", "Bait")
+    add(inv["rod"]["have"], "items/wand.png", "Wand")
+    add(inv["raft"]["have"], "items/raft.png", "Raft")
+    add(inv["book"]["have"], "items/book.png", "Book")
+    add(inv["ladder"]["have"], "items/ladder.png", "Ladder")
+    add(inv["magical_key"]["have"], "items/key.png", "Magical Key")
+    add(inv["bracelet"]["have"], "items/bracelet.png", "Bracelet")
+    return out
+
+
 class DisplayApp:
     def __init__(self, root: tk.Tk):
         self.root = root
@@ -172,8 +220,61 @@ class DisplayApp:
         self.canvas.pack()
         self.bg_image = tk.PhotoImage(file=os.path.join(SPRITES, "bkgrnd.png"))
         self._last_mtime = None
+        self._rom_hash = None
+        # Manual click-to-cycle notes for dungeon item boxes: {"L{level}_{i}": [sprite, label]}.
+        # Heart/Triforce stay automatic (both proven reliable); the item
+        # boxes are user-annotated instead of auto-detected, since dungeon
+        # item *identity* isn't reliably known for every flagset. Persisted
+        # locally, keyed to the loaded ROM so switching seeds starts clean.
+        self.manual: dict[str, list] = {}
+        self._last_inventory: dict | None = None
         self.redraw(None)
         self.tick()
+
+    def _notes_path(self) -> str:
+        return NOTES_FILE
+
+    def _load_notes(self, rom_hash: str) -> None:
+        try:
+            with open(self._notes_path(), "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, ValueError):
+            data = {}
+        if data.get("rom_hash") == rom_hash:
+            self.manual = data.get("selections", {})
+        else:
+            self.manual = {}
+        self._rom_hash = rom_hash
+
+    def _save_notes(self) -> None:
+        try:
+            with open(self._notes_path(), "w", encoding="utf-8") as f:
+                json.dump({"rom_hash": self._rom_hash, "selections": self.manual}, f)
+        except OSError:
+            pass
+
+    def _on_box_click(self, level: int, box_index: int, _event=None) -> None:
+        key = f"L{level}_{box_index}"
+        owned = _owned_item_sprites(self._last_inventory or {})
+        cycle = [None] + owned  # None = empty slot, then each owned item once
+        current = self.manual.get(key)  # None, or [sprite, label]
+
+        cur_idx = -1  # not found (e.g. item no longer owned) -> restart at empty
+        for i, c in enumerate(cycle):
+            if c is None and current is None:
+                cur_idx = i
+                break
+            if c is not None and current is not None and c[0] == current[0]:
+                cur_idx = i
+                break
+
+        choice = cycle[(cur_idx + 1) % len(cycle)]
+        if choice is None:
+            self.manual.pop(key, None)
+        else:
+            self.manual[key] = list(choice)
+        self._save_notes()
+        self.redraw(statelib.load_json(STATE_FILE))
 
     def tick(self):
         try:
@@ -204,6 +305,10 @@ class DisplayApp:
         connected = meta.get("connected")
         self.root.title(f"Z1TRack -- {'connected' if connected else 'disconnected'}")
 
+        rom_hash = ((meta.get("rom") or {}).get("hash"))
+        if rom_hash != self._rom_hash:
+            self._load_notes(rom_hash)  # fresh seed -> start manual notes clean
+
         # Triforce triangle
         tri = state.get("triforce") or {}
         pieces = tri.get("pieces") or [False] * 8
@@ -215,6 +320,7 @@ class DisplayApp:
         # Inventory grid
         inv = state.get("inventory")
         if inv:
+            self._last_inventory = inv
             for key, (x, y) in INV_BOXES.items():
                 icons = _inv_icon_for(inv, key)
                 if not icons:
@@ -224,16 +330,33 @@ class DisplayApp:
                     self._put(icon_path, ix, y + 2)
                     ix += 18  # side-by-side spacing for bow+arrow
 
-        # Per-level: item checks (fairy per taken major item), heart, triforce
+        # Per-level: item boxes are manual click-to-cycle (dungeon item
+        # *identity* isn't reliably auto-detectable for every flagset, so the
+        # player records what they found instead of the tool guessing).
+        # Heart/Triforce stay fully automatic -- both proven reliable.
         locs = state.get("locations", {})
         for lvl_data in locs.get("levels", []):
             level = lvl_data["level"]
             boxes = LEVEL_BOXES.get(level, [])
-            items = lvl_data.get("items", {})
-            taken = items.get("taken") or 0
-            for i in range(min(taken, len(boxes))):
-                bx, by = boxes[i]
-                self._put("levelicons/fairy.png", bx + 11, by + 4)
+            for i, (bx, by) in enumerate(boxes):
+                key = f"L{level}_{i}"
+                # Clickable region over the box, filled to match the
+                # template's black box (a fully transparent/empty-fill
+                # rectangle in tkinter is only hit-testable on its outline,
+                # not its interior -- must actually match the background to
+                # both look right and be clickable across the whole box).
+                # Recreated every redraw since canvas.delete("all") clears
+                # old canvas items (and their bindings) too.
+                rect = self.canvas.create_rectangle(
+                    bx, by, bx + BOX_W, by + BOX_H, outline="", fill="black",
+                )
+                self.canvas.tag_bind(
+                    rect, "<Button-1>",
+                    lambda e, lv=level, ix=i: self._on_box_click(lv, ix, e),
+                )
+                choice = self.manual.get(key)
+                if choice:
+                    self._put(choice[0], bx + 11, by + 2)
 
             hx, hy = LEVEL_HEART_TRIFORCE_ANCHOR.get(level, (0, 0))
             heart = lvl_data.get("heart") or {}
