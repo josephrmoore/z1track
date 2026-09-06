@@ -117,6 +117,35 @@ def decode_screens(ram: bytes) -> dict:
     }
 
 
+def decode_secrets(ram: bytes) -> dict:
+    """Pure-RAM overworld secrets, flat (no region breakdown -- no trustworthy
+    screen-to-region table is available; a table an AI produced for this was
+    checked against the real source of the two established community
+    trackers and did not match anything there, so it was not used).
+
+    Per the documented overworld screen-state byte (%Ss-I-EEE):
+      S (0x80) = secret discovered on this screen
+      I (0x10) = item obtained on this screen
+    "Found" = S set. "Left behind" = S set but I not set (found the secret,
+    never picked up what was there).
+    """
+    base = RAM["ow_screens"]
+    length = RAM["ow_screens_len"]
+    screens = ram[base:base + length]
+    found = sum(1 for b in screens if b & 0x80)
+    taken_count = sum(1 for b in screens if (b & 0x80) and (b & 0x10))
+    return {
+        "found": found,
+        "leftBehind": found - taken_count,
+    }
+
+
+def decode_enemy_kill_counter(ram: bytes) -> dict:
+    """Live "Nth enemy has the bomb" counter ($0050): counts enemies killed
+    without taking damage, resets to 0 once it reaches 10."""
+    return {"count": ram[0x0050], "resetAt": 10}
+
+
 def taken(ram: Optional[bytes], screen: Optional[int]) -> Optional[bool]:
     if ram is None or screen is None:
         return None
@@ -138,6 +167,8 @@ def decode(ram: bytes) -> dict:
         "inventory": decode_inventory(ram),
         "hearts": decode_hearts(ram),
         "triforce": decode_triforce(ram),
+        "secrets": decode_secrets(ram),
+        "enemyKillCounter": decode_enemy_kill_counter(ram),
         "screens": decode_screens(ram),
         "takeAny": ram[RAM["take_any"]],
         "shopSlots": {

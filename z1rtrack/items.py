@@ -137,6 +137,9 @@ OW_SCREENS = {
 # P6/coast=0x5F, L8=0x7B) was verified against real gameplay and is what
 # validated this same mechanism before generalizing it.
 # The tracker only ever reports the *count* of these cleared, never which.
+#
+# NOTE: the RAM-only build (this branch) dropped Overworld Heart Container
+# tracking entirely (not MVP) -- it isn't reused below.
 
 
 # --- RAM addresses (NES work RAM) --------------------------------------------

@@ -1,17 +1,9 @@
 #!/usr/bin/env python3
-"""Preliminary text display for Z1TRack.
+"""Preliminary text display for Z1TRack (pure RAM-only build).
 
 Reads tracker_state.json (the data contract written by `python -m z1rtrack.cli`)
 and renders a plain-text dashboard, refreshing whenever the file changes. This
-is a *display*, deliberately kept separate from the data-producing service --
-it only reads the JSON contract, the same way any future GUI/OBS overlay would.
-
-Scope note (v0): per-level "extra item" slot identities are hidden. Their room
-addresses are known to be wrong (validated against real seed logs) and showing
-them during actual play would be actively misleading. Boss/Triforce/Map/
-Compass/Heart status per level are shown because those *are* validated, as
-long as the seed does not have "Shuffle Dungeon Drops" enabled (in which case
-those four can relocate to rooms this build doesn't know about yet).
+is a *display*, deliberately kept separate from the data-producing service.
 
 Usage:
     python3 watch.py [--file tracker_state.json] [--interval 0.5]
@@ -26,13 +18,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from z1rtrack import state as statelib  # noqa: E402
 
-
-def _mark(v) -> str:
-    if v is True:
-        return "X"
-    if v is False:
-        return "."
-    return "?"
+SWORD_NAMES = {0: "No Sword", 1: "Wood Sword", 2: "White Sword", 3: "Magical Sword"}
 
 
 def render(state: dict) -> str:
@@ -44,12 +30,6 @@ def render(state: dict) -> str:
         f"playing={meta.get('playing')}  level={meta.get('level')} "
         f"room={meta.get('room')}"
     )
-    rom = meta.get("rom") or {}
-    lines.append(
-        f"ROM loaded={rom.get('loaded')}  z1rLikely={rom.get('z1rLikely')}  "
-        f"quest=E{(rom.get('quest') or {}).get('early')}/"
-        f"L{(rom.get('quest') or {}).get('late')}"
-    )
     for note in state.get("notes", []):
         lines.append(f"  ! {note.get('code')}: {note.get('message')}")
     lines.append("-" * 60)
@@ -58,9 +38,7 @@ def render(state: dict) -> str:
     hearts = state.get("hearts")
     tri = state.get("triforce")
     if inv is not None:
-        have = []
-        if inv["sword"]["name"]:
-            have.append(inv["sword"]["name"])
+        have = [SWORD_NAMES.get(inv["sword"]["value"], "?")]
         for key in ("bow", "recorder", "bait", "rod", "raft", "book", "ladder",
                     "magical_key", "bracelet", "letter", "boomerang",
                     "mag_boomerang", "mag_shield", "clock"):
@@ -87,30 +65,16 @@ def render(state: dict) -> str:
         lines.append(f"Triforce pieces: {tri['count']}/8")
 
     lines.append("-" * 60)
-    locs = state.get("locations", {})
-    ow = locs.get("overworld", {})
-    for key in ("white_sword", "armos", "coast"):
-        loc = ow.get(key, {})
-        item = (loc.get("item") or {}).get("name", "?")
-        lines.append(f"{loc.get('label', key):20s} [{_mark(loc.get('taken'))}] {item}")
-    hc = locs.get("overworldHeartCaves", {})
-    lines.append(f"OW Heart Caves cleared: {hc.get('cleared')}/{hc.get('total')}")
-
-    lines.append("-" * 60)
-    lines.append("Lvl  Triforce  Heart   Items (major)")
-    for lvl in locs.get("levels", []):
-        t = lvl.get("triforce", {}).get("taken")
-        h = lvl.get("heart", {}).get("taken")
-        items = lvl.get("items", {})
-        total, taken = items.get("total"), items.get("taken")
-        if total is None:
-            items_str = "?"
-        elif total == 0:
-            items_str = "(none)"
-        else:
-            items_str = f"{taken}/{total}" + ("  ALL CLEAR" if taken == total else "")
+    secrets = state.get("secrets")
+    if secrets is not None:
         lines.append(
-            f" {lvl['level']:<3}  [{_mark(t)}]      [{_mark(h)}]    {items_str}"
+            f"Secrets found: {secrets.get('found')}  "
+            f"left behind: {secrets.get('leftBehind')}"
+        )
+    ekc = state.get("enemyKillCounter")
+    if ekc is not None:
+        lines.append(
+            f"Enemies killed (no damage): {ekc.get('count')}/{ekc.get('resetAt')}"
         )
     lines.append("=" * 60)
     return "\n".join(lines)

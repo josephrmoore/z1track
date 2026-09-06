@@ -1,13 +1,15 @@
-"""Tracker service: polls the live RAM source, reconciles against the ROM
-ledger, and writes tracker_state.json.
+"""Tracker service: polls the live RAM source and writes tracker_state.json.
+
+Pure RAM-only -- this never opens, reads, or references the seed .nes file.
+No ROM path is accepted anywhere in this module, by design.
 
 Live sources:
   1. A Lua connector (BizHawk/FCEUX) streaming JSON lines over TCP.
   2. A raw-hex RAM file (demo / headless / test mode, polled on change).
 
 The loop is fully stateless between reads: every poll re-derives the entire
-tracker state from absolute RAM + the static ROM ledger.  On any disconnect or
-cold restart the display repopulates from the next successful poll, so the
+tracker state from the current RAM snapshot alone. On any disconnect or cold
+restart the display repopulates from the next successful poll, so the
 service never needs to replay events.
 """
 
@@ -20,7 +22,6 @@ import sys
 import time
 
 from . import ram as ramlib
-from . import rom as romlib
 from . import state as statelib
 
 DEFAULT_PORT = 52981
@@ -138,47 +139,14 @@ class FileRamSource(RamSource):
         return None
 
 
-class RomWatcher:
-    """Re-reads and re-parses the seed ROM when the file on disk changes."""
-
-    def __init__(self, path: str | None):
-        self.path = path
-        self.ledger = None
-        self._mtime = None
-        self.changed = False
-
-    def refresh(self) -> bool:
-        """Returns True when the ledger was (re)built this call."""
-        if not self.path:
-            self.changed = False
-            return False
-        try:
-            mtime = os.path.getmtime(self.path)
-        except OSError:
-            return False
-        if mtime == self._mtime and self.ledger is not None:
-            self.changed = False
-            return False
-        try:
-            self.ledger = romlib.build_ledger(self.path)
-            self._mtime = mtime
-            self.changed = True
-            return True
-        except romlib.RomError as e:
-            print(f"ROM parse failed: {e}", file=sys.stderr)
-            self.ledger = None
-            return False
-
-
 class TrackerRunner:
-    def __init__(self, rom_path: str | None, output: str,
+    def __init__(self, output: str,
                  source: str = "tcp", host: str = "127.0.0.1", port: int = DEFAULT_PORT,
                  ram_file: str | None = None, poll_ms: int = 250,
                  write_every_ms: int = 1000):
         self.output = output
         self.poll = poll_ms / 1000.0
         self.write_every = write_every_ms / 1000.0
-        self.rom_watcher = RomWatcher(rom_path)
         if source == "file" or ram_file:
             self.source: RamSource = FileRamSource(ram_file or "ram.hex")
         else:
@@ -195,28 +163,18 @@ class TrackerRunner:
         last_write = 0.0
         last_state = None
         detected = False
-        # initial ROM parse (logs a human-readable ledger on --verbose)
-        self.rom_watcher.refresh()
-        if self.rom_watcher.ledger is not None:
-            print(f"LEDGER OK: {self.rom_watcher.ledger.rom_hash[:12]}  "
-                  f"quest E{self.rom_watcher.ledger.quest_early}/L{self.rom_watcher.ledger.quest_late}  "
-                  f"z1r={self.rom_watcher.ledger.z1r_likely}")
         while True:
             ram_now = self._read_ram()
-            self.rom_watcher.refresh()
-            seed_changed = self.rom_watcher.changed
-            ledger = self.rom_watcher.ledger
 
             try:
                 state = statelib.build_state(
-                    ram_now, ledger,
+                    ram_now,
                     connected=ram_now is not None,
                     source=type(self.source).__name__,
-                    seed_changed=seed_changed,
                 )
             except ramlib.RamError as e:
                 sys.stderr.write(f"ram: {e}\n")
-                state = statelib.build_state(None, ledger, connected=False,
+                state = statelib.build_state(None, connected=False,
                                              source=type(self.source).__name__)
 
             now = time.time()
@@ -254,9 +212,9 @@ def run_cli(argv):
 
     parser = argparse.ArgumentParser(
         prog="z1rtrack",
-        description="Zelda-1 Randomizer auto-tracker data source. Writes "
-                    "tracker_state.json for a display to read.")
-    parser.add_argument("--rom", help="path to the seed .nes file")
+        description="Zelda-1 Randomizer pure-RAM auto-tracker. Writes "
+                    "tracker_state.json for a display to read. Never reads "
+                    "the seed .nes file.")
     parser.add_argument("-o", "--output", default="tracker_state.json",
                         help="output contract file (default: tracker_state.json)")
     parser.add_argument("--source", choices=["tcp", "file"], default="tcp",
@@ -270,48 +228,23 @@ def run_cli(argv):
                         help="minimum interval between file writes in ms")
     sub = parser.add_subparsers(dest="command")
 
-    led = sub.add_parser("verify", help="parse the ROM and print the ledger")
-    led.add_argument("--rom")
-
     one = sub.add_parser("once", help="read RAM once in demo mode and write state")
-    one.add_argument("--rom")
     one.add_argument("--ram-file")
     one.add_argument("-o", "--output", default="tracker_state.json")
 
     args = parser.parse_args(argv)
-
-    if args.command == "verify":
-        rom_path = args.rom
-        if not rom_path:
-            parser.error("verify requires --rom")
-        try:
-            ledger = romlib.build_ledger(rom_path)
-        except romlib.RomError as e:
-            print(f"ROM parse failed: {e}", file=sys.stderr)
-            return 1
-        print(json.dumps(romlib.dump_ledger(ledger), indent=2))
-        return 0
 
     if args.command == "once":
         raw = None
         if args.ram_file:
             with open(args.ram_file, "r", encoding="utf-8") as f:
                 raw = ramlib.hex_to_ram(f.read().strip())
-        ledger = None
-        if args.rom:
-            try:
-                ledger = romlib.build_ledger(args.rom)
-            except romlib.RomError as e:
-                print(f"ROM parse failed: {e}", file=sys.stderr)
-        state = statelib.build_state(raw, ledger,
-                                     connected=raw is not None,
-                                     source="once")
+        state = statelib.build_state(raw, connected=raw is not None, source="once")
         statelib.write_json_atomic(args.output, state)
         print(f"wrote {args.output}")
         return 0
 
     TrackerRunner(
-        rom_path=args.rom,
         output=args.output,
         source=args.source,
         host=args.host,
