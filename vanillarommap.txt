@@ -1,0 +1,326 @@
+
+/
+z1tracker
+z1tracker
+
+How can I help you today?
+
+
+
+
+Recents
+Building a Zelda 1 randomizer tracker
+14 hours ago
+Instructions
+Plan first, act last. Always double check before executing (measure twice cut once). We are building a live handsfree tracker for Zelda 1 Randomizer. I have the project scoped out into 3 modules. The first module we've been working on already: MODULE 1: ITEM & DUNGEON ITEM TRACKER The data must always be able to be gotten on load, cold, with no observation. Tracker connectivity is guaranteed to drop mid game and if you have to make adjustments it defeats the purpose. When the connectivity drops and then picks up, it should be instantly current, even when things happened in between. INVENTORY: What you currently have, items & triforce pieces DUNGEON ITEMS: Which items are in which dungeon, but only revealed when you have gotten gotten it (location's "taken" bit), as well as when you've gotten its heart container and triforce piece. INFORMATION TO LEARN -Item IDs: there are 8 regular items and 6 special items, as well as 8 triforce pieces. -Item location IDs: rooms in each dungeon where the item is -Taken bits for each item With that you should be able to populate everything in this module. ITEMS Boomerang - 2 variations, regular & magic Bombs Bow, Arrow, Both - depending on what you have it will display as so Candle - 2 variations, blue & red Letter/Potion - 3 variations, Letter/Blue/Red Wand Meat Recorder ITEM LOCATIONS (First Quest) Level 1: 2 items (Second Quest) Level 4: 2 items (Both quests) Level 8: 2 items Level 9: 2 items Every other level has 1 Item. Every level also has a heart and a triforce piece, except level 9. We need the room location of all these items, hearts, and triforces. If we have current inventory, which locations are the main items located, and which items/hearts/triforce have been taken already, we should have everything we need for this module. (TBD) MODULE 2: OVERWORLD CHECK TRACKER MODULE 3: SHAPES DUNGEON MAPPER
+
+Memory
+Only you
+Project memory will show here after a few chats.
+
+Context
+
+romreader.py
+4.4kB
+
+py
+
+
+
+
+Sample Response (Big Pickle)
+13.3kB
+
+text
+
+
+
+
+Sample Response (Muse)
+14.9kB
+
+text
+
+
+
+
+Sample Response (Gemini)
+7.3kB
+
+text
+
+
+
+
+High Level Project Goals (ALWAYS ALIGN WITH THESE)
+1.6kB
+
+text
+
+
+
+
+RAM Map
+23.8kB
+
+text
+
+
+
+
+pre-map findings (probably outdated)
+4.6kB
+
+text
+
+
+
+
+Zelda 1 VAnilla Rom Map
+16.4kB
+
+text
+
+
+
+Zelda 1 VAnilla Rom Map
+The Legend of Zelda/ROM map
+< The Legend of Zelda
+Jump to navigationJump to search
+Chip tiny.png The following article is a ROM map for The Legend of Zelda.
+ 
+Offsets are from the beginning of the ROM. To get the offset from the beginning of an iNES (.nes) file, add 0x10 (16 decimal).
+ 
+From	To	Description
+D60	D84	Music Pointers
+185B	1861	Pointer table for sound effects
+1862	18BE	Sound effects data
+1F90		Square instrument for the entire game. Default is 90.
+4000	404B	Pointer table for character text
+404C	45A1	Text spoken by characters.
+4DB4	5EB4	Graphics for Title Screen.
+6B5D	6B7B	Item palette assignments
+6010	6017	Warp whistle coordinates. Default screen ID#s are 36 3B 73 44 0A 21 41 6C. The screen ID# needs to be one less than the target screen ID# because the whirlwind scrolls you right.
+6B95		Temporary "green"? 29 is Link's original color. Related to next two.
+6B96		Temporary "blue" assigned in dungeon to Link if he finds the blue ring there.
+6B97		Temporary "red" assigned in dungeon to Link if he finds the red ring there.
+6D97	6D9A	"Lost Woods" secret path (01 = East, 02 = West, 04 = South, 08 = North)
+6D9B	6D9E	"Lost Hills" secret path (01 = East, 02 = West, 04 = South, 08 = North)
+6DA7		"Lost Woods" map location
+6DC0		"Lost Woods" exit direction (01 = East, 02 = West, 04 = South, 08 = North)
+6DC9		"Lost Hills" map location
+6DD2		"Lost Hills" exit direction (01 = East, 02 = West, 04 = South, 08 = North)
+6F4F	701A	Character palette assignments and sprite orientation.
+747F		Attack Power of Boomerang (default is 0). It can only damage what it can stun.
+7521		Beam Power of Magical Rod (default is 20)
+752A		Beam Power of Magical Sword (default is 40)
+7533		Beam Power of White Sword (default is 20)
+7539		Beam Power of Wooden Sword (default is 10)
+7553		Flame Power (default is 10)
+756A		Bomb Explosion Power (default is 40)
+7596		Attack Power of Wooden Sword (default is 10)
+7597		Attack Power of White Sword (default is 20)
+7598		Attack Power of Magical Sword (default is 40)
+75DD		Attack Power of Magical Rod (default is 20). Value cannot be 0 unless 75DE is set to F0 instead of D0 (otherwise it will act as if it is an arrow)
+75E9		Attack Power of Arrow (default is 20)
+807F	8F4F	Graphics for Link, items, text, status bar.
+929B	94AC	"All of Treasures" inventory listing
+94AD	94E6	Pointer table [2-byte] for inventory listing (not sequential!)
+9562	9565	Colors for the Link that holds up the "see manual" sign.
+9969	9B68	Title Screen Color Morphing (Defaults to blue/black colors)
+9D48	9DDE	Registration/Elimination Mode text
+9EEB	9EEF	The name needed to skip the first quest. (default is ZELDA)
+A287		Link's original color (default to 29 for green)
+A288		Link's blue tunic color (default to 32 for light blue)
+A289		Link's red tunic color (default to 16 for red)
+A959	A97E	Text: "Thanks Link, you're the hero of Hyrule."
+AB07	AB3B	Text: "Finally, peace returns to Hyrule. This ends the story."
+AC2E	AC44	Pointer table [first halves of 2-byte pointers] for credits text
+AC45	AC5B	Pointer table [second halves of 2-byte pointers] for credits text
+AC5C	ADF9	Credits text
+C11B	EBCB	Graphics for dungeon and map, overworld, triforce collection, people, monsters
+10CB2		The screen where a statue hides a hidden item. (24)
+10CB3	10CB8	The six screens where statues can hide secret stairways.
+10CB9		X-placement of item hidden by statue.
+10CBA	10CBF	X-placement of stairs hidden by statues. (30 = 4th column) (lower nybble should always be 0, otherwise the stairs won't appear)
+10CE5		Y-placement of all stairs hidden by statues. (default 80 = row above middle) (lower nybble should always be 0, otherwise the stairs won't appear)
+10CF5		Item code for the item hidden under a statue. (14 = power bracelet)
+10F80		X position of Raft Trigger on any screen other than screen 55
+10F84		Screen with different X position of Raft Trigger
+10F88		X position of Raft Trigger on screen 55
+11452		Aquamentus' starting X-coordinate
+11456		Aquamentus' starting Y-coordinate
+117C2		Aquamentus' leftbound limit
+117C6		Fallback value for when Aquamentus exceeds leftbound limit.
+117D0		Aquamentus' rightbound limit
+117D4		Fallback value for when Aquamentus exceeds rightbound limit
+11812	11833	Aquamentus' Fireball Routine
+11834	1183F	Aquamentus' graphics pointer tables (six bytes apiece)
+11840	1084B	Y- and X-coordinates for the six 8x16 tiles that make up the Aquamentus (six bytes apiece)
+1184C	11892	Aquamentus Graphics Handler
+12809	1281A	Gleeok(Many-headed dragon)'s pointer table.
+12F67	12F69	Ganon turns these colors if you don't kill him with arrow when it's time to.
+1416A	14181	The Triforce layout on the Start screen.
+14944		The first room where Link can use the raft in the overworld (3F). This is embedded in code.
+14948		The second room where Link can use the raft in the overworld (55).
+15418	15BD7	Overworld screens. Each byte refers to 1 of 150 (256 addressable) columns.
+15BD8	15F9B	The 150 overworld columns. First six bytes are the first column. %CDTT TTTT: C - start of new column; D - use tile twice; T - Tile ID
+15FA0	15FED	Graphics pointers for dungeon walls.
+15FEE	16029	Special graphics pointers for east wall. (Five, twelve-byte segments: open door, locked door, shutter, unbombed, bombed)
+1602A	16065	Special graphics pointers for west wall.
+16066	160A1	Special graphics pointers for south wall.
+160A2	160DD	Special graphics pointers for north wall.
+160DE	162D5	All 42 possible dungeon rooms. (use of vertical dungeon "macros".)
+162D6	163F5	Macro content definitions (much overlap; set seventh bit denotes starting points similar to overworld columns)
+16704	16717	Pointers to the ten Macro Content sequences (low-endian)
+1697C	169B3	Primary square table: squares specified as first of four tiles
+169B4	169F3	Secondary square table: squares specified as series of four tiles
+16976	1697B	Secrets table: list of six squares to draw for 'secrets' squares (E5-EA in primary square table), such as a bombable rock wall or burnable bush
+1788A		Item code for the overworld heart container that requires the stepladder.
+1788E		Horizontal positioning of the overworld heart container.
+1789A		The screen where the overworld heart container is placed.
+18000	18013	Ten 2-byte pointers specifying which PPU Spriteblock to use for levels 0 (overworld) and 1 - 9.
+18014	18027	Ten 2-byte pointers specifying location of level data blocks.
+1802A	1803D	Ten 2-byte pointers specifying which PPU Spriteblock to use for levels 0 - 9 for second quest.
+1812D	1815E	Subroutine that changes 7 screens' data for Q2 (see below).
+Note: this is the routine that uses the values at $1815F, and also below
+1813C		The screen to use in 2nd quest for 0B. (1st quest's Level 5) default 7B
+1813E		The screen (minus 2) that changes to 7B. default 09 (if value underflows after subtracting 2, also subtract one from the next byte; this is the low byte of an address in SRAM)
+18141		The screen to use in 2nd quest for 3C. (1st quest's Level 2) default 7B
+18143		The screen (minus 2) that changes to 7B. default 3A
+18146		The screen to use in 2nd quest for 74. (1st quest's Level 3) default 5A
+18148		The screen (minus 2) that changes to 5A. default 72
+1815F	18165	8 locations that change in 2nd quest (Bit 7 = change screen data table 3 instead of screen data table 2)
+18167	1816C	Define what those 8 locations change to in 2nd quest. (see $18480-57F)
+1816F	183BE	2nd quest dungeon map info
+18400	1847F	Overworld screen data Table 1. %HHHH ZWPP: H - Link's X position on leaving underground; Z - Zora spawns; W - wave sound plays; P - Outer palette
+18400		(Changing cave exit location causes glitched graphics to appear when the player opens the subscreen.) (this can be fixed with some assembly knowledge) (this can be avoided by making sure bit 7 is set)
+18444		(Changing outer from brown makes caves white instead of dark brown.)
+18480	184FF	Overworld screen data Table 2. %LLLL LLPP: L - underground location assignment (locations 1-F are levels); P - Inner palette
+184C4		(Changing inner from green changes the color of the caves' text.)
+18500	1857F	Overworld monster placement table. %CCMM MMMM: C - index into monster count list at $19324; M - Monster or Monster group ID
+18580	185FF	Arrangement of 8 X 16 screens that make up the overworld. (Bit 7 = use monster groups)
+18600	1867F	Store prices, items sold, and item graphics used (see below).
+18600	18602	Specify items found in the wooden sword cave. (Final item has bit 6 set)
+18603	18605	Specify items found in the "take a free bottle/heart-container" caves. (Final item has bit 6 set)
+18606	18608	Specify items found in the white sword cave. (First AND final items have bit 6 set)
+18609	1860B	Specify items found in the magical sword cave. (First AND final items have bit 6 set)
+18618	1861A	Specify items found in the letter cave. (Final item has bit 6 set)
+18622	18624	Specify "items" found in the gambling caves(?). (Final item has bit 6 set)
+1861E	18620	Specify items sold in potion store. (Final item has bits 6 and 7 set)
+18627	18629	Specify items sold in store A. (Final item has bits 6 and 7 set)
+1862A	1862C	Specify items sold in store B. (Final item has bits 6 and 7 set)
+1862D	1862F	Specify items sold in store C. (Final item has bits 6 and 7 set)
+18630	18632	Specify items sold in store D. (Final item has bits 6 and 7 set)
+1865A	1865C	Prices for items in potion store.
+18663	18665	Prices for items in store A.
+18666	18668	Prices for items in store B.
+18669	1866B	Prices for items in store C.
+1866C	1866E	Prices for items in store D.
+18670		Number of rupees given by moblin. (default is 0x1E or 30)
+18673		Number of rupees given by moblin. (default is 0x64 or 100)
+18676		Number of rupees given by moblin. (default is 0x0A or 10)
+18680	186FF	Overworld screen data Table 3. %12SS EVVV: 1 - ignore secret in quest 1; 2 - ignore secret in quest 2; S - stair position index; E - Monster entry type; V - Link's Y position on leaving underground
+1st Quest Dungeon screen data tables:
+18700	1877F	N / S & outer color for Levels 1 through 6. %NNNS SSPP: N - north door; S - south door; P - palette
+18771		By default this is the entrance to Level 4.
+18773		By default this is the entrance to Level 1.
+18776		By default this is the entrance to Level 5.
+18779		By default this is the entrance to Level 6.
+1877C		By default this is the entrance to Level 3.
+1877D		By default this is the entrance to Level 2.
+18780	187FF	E / W & inner color for Levels 1 through 6. %EEEW WWPP: E - east door; W - west door; P - palette
+18800	1887F	Monsters for Levels 1 through 6. %CCMM MMMM: C - monster count index; M - Monster or Monster group ID
+18880	188FF	Types of rooms used for Levels 1 through 6. %SPTT TTTT; S - use monster groups; P - first block in middle row is pushable; T - type of room
+18900	1897F	Floor items in Levels 1 through 6. %DSSI IIII: D - dark room; S - boss noise; I - item type
+18980	189FF	Special floor items in Levels 1 through 6. %--PP -TTT: P - item position index; T - room effect type
+18A00	18A7F	N / S & outer color for Levels 7 through 9.
+18A76		By default this is the entrance to Level 9.
+18A79		By default this is the entrance to Level 7.
+18A7E		By default this is the entrance to Level 8.
+18A80	18AFF	E / W & inner color for Levels 7 through 9.
+18B00	18B7F	Monsters for Levels 7 through 9.
+18B80	18BFF	Types of rooms used for Levels 7 through 9.
+18C00	18C7F	Floor items in Levels 7 through 9.
+18C80	18CFF	Special floor items in Levels 7 through 9.
+2nd Quest Dungeon screen data tables:
+18D00	18D7F	N / S & outer color for Levels 1 through 6.
+18D72		By default this is the entrance to Level 5.
+18D74		By default this is the entrance to Level 6.
+18D75		By default this is the entrance to Level 3.
+18D77		By default this is the entrance to Level 1.
+18D79		By default this is the entrance to Level 2.
+18D7D		By default this is the entrance to Level 4.
+18D80	18DFF	E / W & inner color for Levels 1 through 6.
+18E00	18E7F	Monsters for Levels 1 through 6.
+18E80	18EFF	Types of rooms used for Levels 1 through 6.
+18F00	18F7F	Floor items in Levels 1 through 6.
+18F80	18FFF	Special floor items in Levels 1 through 6.
+19000	1907F	N / S & outer color for Levels 7 through 9.
+19074		By default this is the entrance to Level 9.
+19079		By default this is the entrance to Level 7.
+1907F		By default this is the entrance to Level 8.
+19080	190FF	E / W & inner color for Levels 7 through 9.
+19100	1917F	Monsters for Levels 7 through 9.
+19180	191FF	Types of rooms used for Levels 7 through 9.
+19200	1927F	Floor items in Levels 7 through 9.
+19280	192FF	Special floor items in Levels 7 through 9.
+Overworld Colors
+19300	19302	Palette Control Code
+19303	19306	"Gray" Palette, used for cemetery, subscreen menu, and most of the HUD
+19307	1930A	"Red" Palette, used for life bar and keys and rupees icons
+1930B	1930E	"Green" Palette, for forest areas
+1930F	19312	"Brown" Palette, for mountain areas
+19313	19316	Sprite Palette #0; Link, certain items
+19317	1931A	Sprite Palette #1; Blue enemies, certain items
+1931B	1931E	Sprite Palette #2; Red enemies, certain items
+1931F	19322	Sprite Palette #3; Zora, Blue Moblins
+19324	19327	Number of monsters to use at each setting.
+19328		Link's starting Y position for the overworld. (default 8D - subtract 03 from the expected tile position (middle row would be 90; subtract 3 = 8D))
+1932F		00 to 7F used to decide which screen Link starts on in the overworld. (default 77)
+19333		The "Level #" for the overworld. Default is 00 (or, no label)
+19334	19337	The four warp screens on the overworld for "take any road you want" cave. (defaults are 1D, 23, 49, 79)
+193FF	19CD7	Dungeon Data
+19CEC	19CEE	File Select: Link's palette, File 1 (defaults: 29 27 07)
+19CF0	19CF2	File Select: Link's palette, File 2 (defaults: 22 27 07)
+19CF4	19CF6	File Select: Link's palette, File 3 (defaults: 26 27 07)
+Note: The first byte is irrelevant, despite being green, blue, and red values; the tunic color always comes from $A287 to $A289)
+19D07	19D0B	Text: "Level"
+19D0F	19D2E	Column directory pointer table: 16-bit pointers to the start of each of 16 column tables.
+19D5E	19D65	Text: "Triforce"
+19D3A		The frame of the Triforce on the Start screen.
+1A116	1A201	Main menu ("- S E L E C T -", etc.)
+1A205	1A208	Ganon's Palette.
+1A20E	1A210	Ending's text: light blue / grey font colors
+1A212	1A214	Ending's text: light green / grey font colors
+Color Palette 3 options:
+1A281	1A284	Overworld enemy color palette for Zora and blue moblins.
+1A289	1A28C	Colors for Gleeok, the many-headed dragons.
+1A292	1A294	Colors for the Aquamentus, the easy dragon boss.
+1A299	1A29C	Colors for Dodongo and Digdogger.
+1A2B8	1A2D2	Text: Continue, Save, Retry
+1A2F0	1A2F3	Text: Life
+1A316	1A387	Subscreen text
+1A3D6	1A3E2	Text: "Game Over "
+1A3FE	1A81A	The storyboard text
+1A81B	1A85D	Use of colors for the storyboard - every 2 bits sets the color for a 2x2 block of text
+1A85E	1A868	Starts with green before title for treasure list.
+1A869	1AC85	Title Screen's use of graphics. (avoid certain values!)
+1AC86	1ACC8	Title Screen's use of colors.
+(Title: In 01AC90 to 01AC9F, 0's = grey, 5's = gold, A's = green)
+ 
+1EA8C		Screen where "found secret" chime plays.
+1EE9A		Screen where the false wall is found.
+1EEA6		X position of false wall.
+1EEAC		Y position of false wall.
+1EF66	1EF70	The eleven places where the recorder unveils secrets.
+1F20D	1F212	The six places where stepladder is enabled.
+1FFFF	ROM ends
+Cave Types
+There are 20 different cave types in the game, not including levels. The data that defines the cave types is listed below. Some behavior of different cave types may be hard-coded. (The last three appear to be the only cave types that can give out free money.)
+ 
+From	To	Description
+045A2		Cave text - Low six bits specify text (values should be multiples of 2), bit 6 specifies whether player can pick up items, and bit 7 is set for shops, potion shops, and pay-to-talk caves.
+1860C		Cave Items. 3 Bytes per cave types, format is (high bit first) NMaaaaaa HTbbbbbb PIcccccc. aaaaaa, bbbbbb, and cccccc are value 0-63 that specify item type. Other bits are as follows: N = show prices as negative, M requires player to have enough hearts to get item, H is set for gambling game and secret money, T is set for pay-to-talk caves, P and I specify whether items and prices are visible.
+18648		Item prices - 3 bytes per cave
+06E6F		Cave dweller - 58 = old man, 59 = old woman, 5A = merchant, 5B = moblin
