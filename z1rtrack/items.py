@@ -65,8 +65,8 @@ DUNGEON_NO_ITEM_IDS = frozenset({0x03, 0x0E})
 # Items that are displayed as boxes inside a dungeon in the tracker UI.
 # (Compass/Map are separate accessory fields, kept out of the shuffle boxes.)
 MAJOR_ITEMS = frozenset({
-    0x01, 0x02, 0x03, 0x05, 0x07, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E,
-    0x10, 0x11, 0x13, 0x14, 0x1A, 0x1B, 0x1D, 0x1E,
+    0x01, 0x02, 0x03, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D,
+    0x0E, 0x10, 0x11, 0x12, 0x13, 0x14, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E,
 })
 
 
@@ -107,15 +107,6 @@ ROM = {
     "coast_screen_addr":      0x1789A,
 }
 
-# White-sword cave numeric id used by the *base* patch for the (AP) white
-# sword item bytes; our read for the white sword item comes from the cave
-# table entry at ROM["white_sword_item"].
-WHITE_SWORD_CAVE = 0x04
-CAVE_NUMBERS = list(range(0x14))          # 0x00..0x13 real caves
-ARMOS_CAVE = 0x14
-COAST_CAVE = 0x15
-
-
 # --- Quest pointer values -> grid base ---------------------------------------
 POINTER_TO_GRID = {
     0x8700: ROM["levels_1_6_first_quest"],
@@ -124,28 +115,7 @@ POINTER_TO_GRID = {
     0x9000: ROM["levels_7_9_second_quest"],
 }
 
-
-# --- 1st-quest per-level room numbers (verified via Archipelago) ------------
-# Room numbers index into the 128-room grid shared by levels 1-6 (early) and
-# by levels 7-9 (late).  "slots" are the shuffle item positions that match the
-# quest slot model (12 total across the 9 levels).
-LEVEL_ROOMS = {
-    1: {"slots": [0x7F, 0x44], "boss": 0x35, "triforce": 0x36, "map": 0x43, "compass": 0x54},
-    2: {"slots": [0x4F],        "boss": 0x0E, "triforce": 0x0D, "map": 0x5F, "compass": 0x6F},
-    3: {"slots": [0x0F],        "boss": 0x4D, "triforce": 0x3D, "map": 0x4C, "compass": 0x5A},
-    4: {"slots": [0x60],        "boss": 0x13, "triforce": 0x03, "map": 0x21, "compass": 0x62},
-    5: {"slots": [0x04],        "boss": 0x24, "triforce": 0x14, "map": 0x46, "compass": 0x37},
-    6: {"slots": [0x75],        "boss": 0x1C, "triforce": 0x0C, "map": 0x19, "compass": 0x68},
-    7: {"slots": [0x4A],        "boss": 0x2A, "triforce": 0x2B, "map": 0x18, "compass": 0x5A},
-    8: {"slots": [0x0F, 0x6F],  "boss": 0x3C, "triforce": 0x2C, "map": 0x2E, "compass": 0x5F},
-    9: {"slots": [0x4F, 0x00],  "boss": None, "triforce": None, "map": 0x27, "compass": 0x35},
-}
-
 LEVELS_WITH_HEART = 8  # levels 1-8 each have one heart; level 9 does not.
-
-# Boss rooms currently use the virtual "BEAST_DEFEATED" item (0x98) in the
-# reference randomizer; the screen-state bit (0x10) is the reliable signal.
-BEAST_DEFEATED = 0x98
 
 
 # --- Overworld screen state offsets (index into $067F-$06FE, verified AP) ---

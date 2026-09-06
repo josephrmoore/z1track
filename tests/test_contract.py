@@ -62,6 +62,15 @@ class TrackerContractTest(unittest.TestCase):
         self.assertIsNone(l9.heart)
         self.assertIsNone(l9.triforce)
 
+        # Magical Shield (0x1C) and Blue Ring (0x12) must count as checks --
+        # previously silently missing from MAJOR_ITEMS with no coverage here.
+        l7 = self.ledger.levels[7]
+        self.assertEqual(len(l7.checks), 1)
+        self.assertEqual(l7.checks[0].item, 0x1C)  # Magical Shield
+        l8 = self.ledger.levels[8]
+        self.assertEqual(len(l8.checks), 1)
+        self.assertEqual(l8.checks[0].item, 0x12)  # Blue Ring
+
         self.assertTrue(self.ledger.overworld["coast"].item == 0x1A)
         self.assertFalse(self.ledger.z1r_likely)
 

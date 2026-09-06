@@ -1,0 +1,316 @@
+1st Quest Overworld
+Shapes Dungeons
+Helpful Hints
+Start shuffle:  Easy start shuffle
+Level 9 Entry:  8 triforces
+Yes Forced Gannon
+Enemy HP: Normal, Boss HP: Normal
+All Caves Cave Shuffle
+Yes Extra Candles
+Full Shuffle Shuffle Dungeon Locations
+Yes Shuffle Dungeon Items, Armos:  Random, Coast:  Random, White Sword Cave:  Recorder, No RR/SA forced in 9
+No Dungeon Heart shuffle
+Yes Shuffle Shop Items
+Book:  Yes Atlas
+2nd Quest:  Yes Rooms
+Yes Enemy Group shuffle, Yes overworld enemies as well
+Yes Randomize Boss Groups
+Red Bubble Curse: Swordless
+Starting Items:  Yes 8 Bombs, Yes Wood Sword
+Max Starting Items:  2
+Starting Hearts:  3
+Starting Triforces:  0
+White Sword Range:  4-4
+Magical Sword Range:  10-10
+
+
+The following is the report of what's generated in the file.  Please note that this contains SPOILERS, so proceed at your own risk.
+
+SEED 896772014407
+------------------------------
+Start Screen:  G4
+ITEMS
+White Sword Cave contains Recorder
+Level 1-1 (located at 1f B16) contains Raft
+Level 1-6 (located at c A13) contains Boomerang
+Level 1-2 (located at 7b H12) contains Magic Boomerang
+Level 1-8 (located at 1a B11) contains Ladder
+Level 1-1 (located at 1f B16) contains Wand
+Level 1-8 (located at 1a B11) contains Bow
+Level 1-3 (located at 28 C9) contains Red Ring
+Armos Item contains Magic Key
+Level 1-9 (located at 6f G16) contains Red Candle
+Level 1-9 (located at 6f G16) contains Silver Arrow
+Level 1-7 (located at 10 B1) contains Book
+Level 1-5 (located at 5b F12) contains Power Bracelet
+Level 1-4 (located at 45 E6) contains White Sword
+Coast Ladder Spot contains Heart Container
+-----------------------------
+CAVES
+Location A2 contains: LETTER CAVE
+Location A4 contains: DOOR REPAIR
+Location A5 contains: SECRET IS IN...
+Location A6 contains: POTION SHOP
+Location A8 contains: 30 SECRET
+Location A11 contains: WOODEN SWORD CAVE
+Location A12 contains: DOOR REPAIR
+Location A13 contains: LEVEL 6
+Location A14 contains: 100 SECRET
+Location A15 contains: MONEY MAKING GAME
+Location A16 contains: 30 SECRET
+Location B1 contains: LEVEL 7
+Location B3 contains: SHOP 1
+Location B4 contains: DOOR REPAIR
+Location B5 contains: DOOR REPAIR
+Location B7 contains: POTION SHOP
+Location B11 contains: LEVEL 8
+Location B13 contains: SHOP 3
+Location B14 contains: MAGICAL SWORD CAVE
+Location B15 contains: SHOP 1
+Location B16 contains: LEVEL 1
+Location C2 contains: TAKE ANY ONE
+Location C3 contains: SHOP 2
+Location C4 contains: TAKE ANY ONE
+Location C5 contains: SHOP 4
+Location C6 contains: 10 SECRET
+Location C7 contains: SHOP 2
+Location C8 contains: SHOP 2
+Location C9 contains: LEVEL 3
+Location C13 contains: 10 SECRET
+Location C14 contains: POTION SHOP
+Location C16 contains: MONEY MAKING GAME
+Location D4 contains: DOOR REPAIR
+Location D8 contains: DOOR REPAIR
+Location D13 contains: TAKE ANY ONE
+Location D14 contains: TAKE ANY ROAD...
+Location E3 contains: MONEY MAKING GAME
+Location E5 contains: POTION SHOP
+Location E6 contains: LEVEL 4
+Location E7 contains: SHOP 1
+Location E8 contains: SHOP 3
+Location E9 contains: MONEY MAKING GAME
+Location E10 contains: 30 SECRET
+Location E11 contains: 10 SECRET
+Location E12 contains: TAKE ANY ROAD...
+Location E14 contains: MONEY MAKING GAME
+Location E15 contains: TAKE ANY ONE
+Location F2 contains: 30 SECRET
+Location F7 contains: WATERFALL PAY ME
+Location F12 contains: LEVEL 5
+Location F15 contains: WHITE SWORD CAVE
+Location G3 contains: DOOR REPAIR
+Location G4 contains: POTION SHOP
+Location G5 contains: TAKE ANY ROAD...
+Location G7 contains: LOST WOODS PAY ME
+Location G8 contains: 30 SECRET
+Location G9 contains: POTION SHOP
+Location G11 contains: TAKE ANY ROAD...
+Location G12 contains: SHOP 3
+Location G14 contains: 10 SECRET
+Location G16 contains: LEVEL 9
+Location H1 contains: 30 SECRET
+Location H2 contains: DOOR REPAIR
+Location H5 contains: 100 SECRET
+Location H6 contains: POTION SHOP
+Location H7 contains: SHOP 1
+Location H8 contains: OLD MAN AT GRAVE
+Location H9 contains: 100 SECRET
+Location H10 contains: 30 SECRET
+Location H12 contains: LEVEL 2
+Location H13 contains: DOOR REPAIR
+Location H14 contains: SHOP 3
+-----------------------------
+SHOP INFO
+SHOP 1
+Key:  95
+Blue Candle:  69
+Bait:  106
+SHOP 2
+Bombs:  37
+Magic Shield:  173
+Bait:  64
+SHOP 3
+Magic Shield:  84
+Wooden Arrow:  63
+Blue Ring:  250
+SHOP 4
+Heart:  1
+Magic Shield:  137
+Key:  84
+POTION SHOP
+BLUE:  37
+RED:  84
+OLD 30 SECRET:  30
+OLD 100 SECRET: 99
+OLD 10 SECRET:  11
+LEVEL 1 MAP
+                                 
+ * A                             
+ |                               
+ *                               
+ |                               
+ *                               
+ |                               
+ *                               
+ |                               
+ *-*-*                           
+ | | |                           
+ *-*-*                           
+ | | |                           
+ *-*-*                           
+ | | |                           
+ A-*-*                           
+     v                           
+
+LEVEL 2 MAP
+                                 
+                   *-*           
+                     |           
+                     *-*         
+                     |           
+                   *-*           
+                   |             
+                   *-*-*         
+                     | |         
+                     *-*-*       
+                     |           
+                     *           
+                     |           
+                     *-*         
+                     | |         
+                     *-*         
+                     v           
+
+LEVEL 3 MAP
+                                 
+             *-*-*           A   
+             |                   
+         *-*-*                   
+           |                     
+           A *                   
+           | |                   
+       *-*-*-B                   
+       | |                       
+       *-*                       
+                                 
+                                 
+                                 
+         *-B-*                   
+           |                     
+           *                     
+           v                     
+
+LEVEL 4 MAP
+                                 
+                                 
+                                 
+       A       *                 
+               |                 
+               *-*               
+               | |               
+               A *               
+               | |               
+               *-*-*             
+               | | |             
+             *-*-*-*             
+               | | |             
+               *-*-*             
+               | | |             
+             *-*-*-*             
+                 v               
+
+LEVEL 5 MAP
+                                 
+     *-*-*-*                     
+     |                           
+   * A           C               
+   | |                           
+   *-*-*-*                       
+   | |                           
+   *-B                           
+                                 
+           *-C                   
+           |                     
+       *-B-*                     
+       |                         
+       *                         
+                                 
+       *-A                       
+       v                         
+
+LEVEL 6 MAP
+                                 
+                       *-*-*     
+                         |       
+                         *-*-* * 
+                         | | | | 
+                         *-*-*-* 
+                         | | | | 
+                         *-*-*-* 
+                             | | 
+                           *-A * 
+                             |   
+                       B-* A *   
+                         |   |   
+                         B-*-*-* 
+                         | | | | 
+                         *-*-*-* 
+                             v   
+
+LEVEL 7 MAP
+                                 
+   A                     *-*-*   
+                         |   |   
+                       *-*   *-A 
+                         |   |   
+                         *-* *-* 
+                         | |     
+                       *-B-*-*   
+                       | | | |   
+                       * *-*-*-* 
+                         | | | | 
+                         *-*-*-* 
+                           |   | 
+                           B   * 
+                           |     
+                         *-*-*   
+                           v     
+
+LEVEL 8 MAP
+                                 
+                 A   *-*       C 
+                 |   |           
+     B         *-*-*-*           
+                   | |           
+                   *-B-*         
+                   | |           
+                 A-*-*           
+                 | | |           
+                 *-*-*           
+                   | |           
+               * *-*-*-*         
+               |   |   |         
+               *-*-C-* *-*       
+                 | |   |         
+                 * *   *         
+                 v               
+
+LEVEL 9 MAP
+                                 
+ A   B-C-*-*-*-*                 
+       | |   |                   
+ *-*   D *-* *                   
+ |           |                   
+ *-*-E *-* *-F E B               
+ |   | | |                       
+ *   G-*-*   *-*                 
+ |   |   |   |                   
+ *-*-*-F-* * *                   
+   | |     | |                   
+ C-*-*-D-*-*-*                   
+   | | | | |                     
+ * *-H *-H-*-*                   
+ | | | |   |                     
+ *-*-A * *-G-*-*                 
+       v                         
+

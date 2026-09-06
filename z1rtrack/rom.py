@@ -289,7 +289,7 @@ def _build_ledger_inner(path: str, data: bytes) -> Ledger:
     cave_items_raw = reader.cave_items()
 
     is_z1r_format = traversal.is_z1r_level_format(
-        [reader.level_info(lvl) for lvl in range(10)],
+        [reader.level_info(lvl) for lvl in range(1, 10)],
         ROM["stairway_list_offset"],
     )
 
@@ -349,12 +349,16 @@ def _build_ledger_inner(path: str, data: bytes) -> Ledger:
     # Shuffle can move which screens lead there, same mechanism as White
     # Sword Cave above. Coast is folded in too (tracked via its own direct
     # address, not the numbered-cave system) if it currently holds a heart.
-    # This can occasionally over-count (a handful of these screens can be
-    # inert leftover data for an inactive alternate overworld layout rather
-    # than real locations), but that's a much smaller error than the
-    # previous hardcoded-vanilla-position bug (false "taken" on a location
-    # that never held a heart this seed, and silently missing the real one).
-    heart_cave_screens_found = _cave_destination_screens(reader, 1)
+    #
+    # Critically: cave slot 1's own *contents* are also subject to item
+    # shuffle -- confirmed on a real seed where slot 1 held Wood
+    # Sword/Recorder/nothing, not a heart at all. Every screen destined for
+    # slot 1 must be gated on slot 1 actually holding 0x1A this seed, exactly
+    # like Coast already is below -- otherwise a cave that never had a heart
+    # gets reported as one to clear.
+    heart_cave_screens_found = []
+    if 0x1A in cave_items_raw[1]["items"]:
+        heart_cave_screens_found = _cave_destination_screens(reader, 1)
     coast_item = reader.u8(ROM["coast_item"]) & 0x3F
     if coast_item == 0x1A and coast_screen not in heart_cave_screens_found:
         heart_cave_screens_found.append(coast_screen)

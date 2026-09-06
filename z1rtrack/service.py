@@ -70,7 +70,17 @@ class TcpRamSource(RamSource):
                 if "ram" in data:
                     self._last_ram = ramlib.hex_to_ram(data["ram"])
                     self._last_update = time.time()
-        except (socket.timeout, OSError, ValueError, KeyError, json.JSONDecodeError) as e:
+        except socket.timeout:
+            # No new line arrived within the socket timeout -- routine, not a
+            # disconnect (this will happen most polls if the connector writes
+            # less often than we poll). Must NOT drop() here: that would wipe
+            # _last_ram and defeat the STALE_SECONDS grace period entirely,
+            # since every plain timeout would otherwise look identical to a
+            # real disconnect. Fall through to the staleness check below.
+            pass
+        except (OSError, ValueError, KeyError, json.JSONDecodeError) as e:
+            # An actual socket error, or unparseable/malformed data -- this
+            # is a real disconnect signal, unlike a plain timeout above.
             self.drop()
             raise ConnectionError(str(e)) from e
         # No new complete message parsed this call -- if the socket is still
@@ -82,7 +92,7 @@ class TcpRamSource(RamSource):
 
     def _connect(self) -> None:
         try:
-            self.sock = socket.create_connection((self.host, self.port), timeout=2.0)
+            self.sock = socket.create_connection((self.host, self.port), timeout=self.timeout)
             self.buffer = b""
         except OSError:
             self.sock = None
@@ -211,8 +221,18 @@ class TrackerRunner:
 
             now = time.time()
             # Write on change, or at least once per write window, plus always
-            # when connection state flips.
-            changed = state != last_state
+            # when connection state flips. Compare everything except
+            # "updatedAt" (a wall-clock timestamp that's different on every
+            # single poll by construction) -- comparing the raw state dict
+            # made this throttle a no-op, writing at full poll_ms cadence
+            # regardless of write_every_ms, which also meant hitting the
+            # Windows-lock retry path far more often than necessary.
+            comparable = {k: v for k, v in state.items() if k != "updatedAt"}
+            last_comparable = (
+                {k: v for k, v in last_state.items() if k != "updatedAt"}
+                if last_state is not None else None
+            )
+            changed = comparable != last_comparable
             flip = ((state["meta"]["connected"] is True) != detected)
             detected = state["meta"]["connected"] is True
             if changed or flip or (now - last_write) >= self.write_every:
