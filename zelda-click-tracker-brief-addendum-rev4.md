@@ -290,3 +290,18 @@ For each item in:
 **WIDTH/HEIGHT = (190, 160)
 
 EXAMPLE So level 1 clickable is at TOPLEFT: (70,65) since the map img is at (500,85), calculating from the offsets: 500-430=70, 85-20=65. With a TOPLEFT of (70, 65) the BOTTOMRIGHT should be (405,260) since the WIDTH is 335 and the HEIGHT is 195
+
+
+OTHER COORDS & OFFSETS
+
+(2830, 90) - clear button X,Y
+(2875, 2025) - 1 button
+(2970, 2025) - 2 button
+
+ONOFF ICON OFFSETS
+
+HEART (-255, +20)
+TRIFORCE (-255, +90)
+1 (-175,+55)
+2a (-175, +20)
+2b (-175, +90)
