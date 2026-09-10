@@ -7,15 +7,24 @@ beyond that. See zelda-click-tracker-brief.md (Rev 3) and
 zelda-click-tracker-brief-addendum-rev4.md for the full spec.
 
 Rev 4: the dynamic, self-sizing chrome layout (icons/dividers computed from
-LAYOUT + asset dimensions) has been retired in favor of one static
-background image (clicktracksprites/background.png) -- see the addendum,
-Section 3. Everything still interactive (the 27 coordinate-logging slots,
-the new per-level Heart/Triforce/Item toggles, the quest switcher, Clear)
-is drawn on top of it and hit-tested via a flat list of pixel regions
-(CLICK_REGIONS, rebuilt on every render) rather than per-item Tk bindings --
-a plain rectangle can't be both invisible *and* hit-testable in its
-interior against an arbitrary image background, so region checking is done
-in Python instead of relying on Tk's per-item event dispatch.
+LAYOUT + asset dimensions) was retired in favor of one static background
+image -- see the addendum, Section 3.
+
+v2: hardcoded pixel offsets for every clickable/display region were
+themselves retired in favor of a hand-painted color-key overlay image
+(clicktracksprites/v2/overlaypositions.png) -- see regionmap.py for the
+color key and detection logic. Regions are re-detected fresh every launch
+(confirmed fast enough, no caching needed), so resizing the background+
+overlay pair in an image editor and dropping in the new files "just works"
+with no coordinates to hand-recompute anywhere.
+
+Everything still interactive (the 27 coordinate-logging slots, the
+per-level Heart/Triforce/Item toggles, the quest switcher, Clear) is
+hit-tested via a flat list of pixel regions (CLICK_REGIONS, rebuilt on
+every render) rather than per-item Tk bindings -- a plain rectangle can't
+be both invisible *and* hit-testable in its interior against an arbitrary
+image background, so region checking is done in Python instead of relying
+on Tk's per-item event dispatch.
 """
 from __future__ import annotations
 
@@ -26,16 +35,21 @@ import tempfile
 import tkinter as tk
 from tkinter import messagebox
 
+import regionmap
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 SPR = os.path.join(HERE, "clicktracksprites")
+V2 = os.path.join(SPR, "v2")
 ICONS = os.path.join(SPR, "icons")
 MAP_DIR = os.path.join(SPR, "map")
+BACKGROUND_PATH = os.path.join(V2, "background.png")
+OVERLAY_PATH = os.path.join(V2, "overlaypositions.png")
+CLICK_OVERLAY_PATH = os.path.join(V2, "clickoverlay.png")
 RAM_FILE = os.path.join(HERE, "ram.hex")
 ROM_INFO_FILE = os.path.join(HERE, "rom_info.json")
 RAM_SIZE = 0x800
 MULTI_CAP = 4
 STALE_SECONDS = 2.0
-THUMB_SIZE = (84, 59)  # map/*.png (253x177 native) subsampled by 3
 LEVEL_IDS = [f"L{i}" for i in range(1, 10)]
 LEVELS_WITH_HEART_TRIFORCE = set(f"L{i}" for i in range(1, 9))  # L9 has neither
 
@@ -80,57 +94,90 @@ def thumb_path(coord: str) -> str:
 
 
 # ----------------------------------------------------------------- layout
-# Addendum Rev 4, Section 8: every anchor/offset below is given relative to
-# the *same* per-row "map image placement" point -- the spot where a
-# logged coordinate's thumbnail renders. The clickable hit-region for
-# logging a coordinate sits to that anchor's left (over the static icon
-# baked into the background); Heart/Triforce/Item toggles sit further left
-# still, at their own fixed offsets. None of this is guessed from the
-# mockup screenshots -- it's the literal pixel data supplied for the
-# delivered background.png.
+# Every clickable/display position comes from regionmap.detect() reading
+# clicktracksprites/v2/overlaypositions.png -- see regionmap.py for the
+# color key. Nothing here is a hardcoded pixel number; it's all derived
+# from that image, fresh, every launch. See _build_layout() below for how
+# raw color blobs get matched to specific slot/level IDs.
 
-BG_SIZE = (3840, 2160)
-
-LEVEL_ANCHORS = {
-    "L1": (500, 85), "L2": (500, 320), "L3": (500, 550), "L4": (500, 780),
-    "L5": (500, 1000), "L6": (500, 1235), "L7": (500, 1460), "L8": (500, 1690),
-    "L9": (500, 1920),
-}
-_COL2_POINTS = [(1100, 85), (1100, 320), (1100, 550), (1100, 780),
-                 (1100, 1000), (1100, 1235), (1100, 1460)]
 _COL2_SLOTS = SECTIONS["swords"]["slots"] + SECTIONS["stairs"]["slots"]
-COL2_ANCHORS = dict(zip(_COL2_SLOTS, _COL2_POINTS))
-
-_COL3_POINTS = [(1660, 80), (1660, 270), (1660, 460), (1660, 650), (1660, 830),
-                 (1660, 1020), (1660, 1205), (1660, 1390), (1660, 1580),
-                 (1660, 1765), (1660, 1950)]
 _COL3_SLOTS = SECTIONS["shops"]["slots"] + SECTIONS["money_hint"]["slots"]
-COL3_ANCHORS = dict(zip(_COL3_SLOTS, _COL3_POINTS))
 
-ANCHORS: dict[str, "tuple[int, int]"] = {**LEVEL_ANCHORS, **COL2_ANCHORS, **COL3_ANCHORS}
+# Levels needing an item-toggle position "1" (single item, in *some* quest)
+# vs. "2a"/"2b" (two items, in *some* quest) -- a level can need either, or
+# (L1, L4) both, depending on which quest is active. Independent of
+# Heart/Triforce, which exist for L1-L8 always and never for L9.
+ITEM_POS1_LEVELS = ["L1", "L2", "L3", "L4", "L5", "L6", "L7"]
+ITEM_POS2_LEVELS = ["L1", "L4", "L8", "L9"]
 
-# Clickable coordinate-logging region = anchor + offset, sized (w, h),
-# category by section (levels vs. col2 vs. col3 all use different offsets).
-_CLICK_RULE = {
-    "levels": {"offset": (-430, -20), "size": (335, 195)},
-    "swords": {"offset": (-240, -15), "size": (165, 195)},
-    "stairs": {"offset": (-240, -15), "size": (165, 195)},
-    "shops": {"offset": (-230, -15), "size": (190, 160)},
-    "money_hint": {"offset": (-230, -15), "size": (190, 160)},
-}
 
-# Heart/Triforce/Item-toggle offsets, relative to a level's own anchor
-# point (LEVEL_ANCHORS) -- fixed regardless of quest (addendum 3.4: pick
-# one location per row, don't vary it by quest).
-HEART_OFFSET = (-255, 20)
-TRIFORCE_OFFSET = (-255, 90)
-ITEM_POS_SINGLE = (-175, 55)   # one item this quest -> centered
-ITEM_POS_FIRST = (-175, 20)    # two items -> first, aligned with heart
-ITEM_POS_SECOND = (-175, 90)   # two items -> second, aligned with triforce
+def _build_layout(overlay_path: str, click_overlay_path: str) -> dict:
+    raw = regionmap.detect(overlay_path)
 
-CLEAR_BUTTON_POS = (2830, 90)
-QUEST1_BUTTON_POS = (2875, 2025)
-QUEST2_BUTTON_POS = (2970, 2025)
+    # Icon-clickable areas (lilac, addendum "the green map icons should be
+    # right-clickable" -- i.e. logging a coordinate isn't limited to
+    # clicking near the thumbnail position, the enemy/sword/shop icon
+    # itself is clickable too) live in a separate overlay file, one lilac
+    # box per slot (unlike green's 4-per-slot for multi-capacity slots --
+    # there's still only one icon to click, regardless of how many
+    # coordinates are currently logged there).
+    click_raw = regionmap.detect(click_overlay_path)
+    lilac_cols = regionmap.cluster_by_x(click_raw["lilac"])
+    lilac_levels = next(c for c in lilac_cols if len(c) == len(SECTIONS["levels"]["slots"]))
+    lilac_col2 = next(c for c in lilac_cols if len(c) == len(_COL2_SLOTS))
+    lilac_col3 = next(c for c in lilac_cols if len(c) == len(_COL3_SLOTS))
+    icon_click_box = dict(zip(SECTIONS["levels"]["slots"], lilac_levels))
+    icon_click_box.update(zip(_COL2_SLOTS, lilac_col2))
+    icon_click_box.update(zip(_COL3_SLOTS, lilac_col3))
+
+    green_cols = regionmap.cluster_by_x(raw["green"])
+    levels_col = next(c for c in green_cols if len(c) == len(SECTIONS["levels"]["slots"]))
+    col2_col = next(c for c in green_cols if len(c) == len(_COL2_SLOTS))
+    col3_subcols = sorted(
+        (c for c in green_cols if len(c) == len(_COL3_SLOTS)),
+        key=lambda c: c[0][0],
+    )
+    if len(col3_subcols) != 4:
+        raise ValueError(
+            f"expected 4 green sub-columns of {len(_COL3_SLOTS)} boxes each for "
+            f"shops/money-hint (one per multi-slot thumbnail position), found "
+            f"{len(col3_subcols)} -- check overlaypositions.png's green boxes.")
+
+    coord_box = dict(zip(SECTIONS["levels"]["slots"], levels_col))
+    coord_box.update(zip(_COL2_SLOTS, col2_col))
+    multi_coord_boxes = {
+        slot_id: [col3_subcols[c][row] for c in range(4)]
+        for row, slot_id in enumerate(_COL3_SLOTS)
+    }
+
+    heart_levels = [f"L{i}" for i in range(1, 9)]
+    heart_box = dict(zip(heart_levels, raw["red"]))
+    triforce_box = dict(zip(heart_levels, raw["yellow"]))
+    item_pos1_box = dict(zip(ITEM_POS1_LEVELS, raw["pink"]))
+    item_pos2a_box = dict(zip(ITEM_POS2_LEVELS, raw["blue"]))
+    item_pos2b_box = dict(zip(ITEM_POS2_LEVELS, raw["purple"]))
+
+    quest_sorted = sorted(raw["orange"], key=lambda b: b[0])  # left-to-right
+    quest_box = {1: quest_sorted[0], 2: quest_sorted[1]}
+    clear_box = raw["cyan"][0]
+
+    return {
+        "coord_box": coord_box,
+        "multi_coord_boxes": multi_coord_boxes,
+        "icon_click_box": icon_click_box,
+        "heart_box": heart_box,
+        "triforce_box": triforce_box,
+        "item_pos1_box": item_pos1_box,
+        "item_pos2a_box": item_pos2a_box,
+        "item_pos2b_box": item_pos2b_box,
+        "quest_box": quest_box,
+        "clear_box": clear_box,
+    }
+
+
+LAYOUT: dict = {}  # populated by ClickTrackerApp.__init__ -- PhotoImage (used
+# inside _build_layout/regionmap.detect) needs a Tk root to already exist,
+# which isn't true yet at module-import time.
 
 # Per-level, per-quest major-item locations ("floor" or "stairs" -- i.e. a
 # secret room reached via a staircase). Independent of Heart/Triforce,
@@ -311,10 +358,14 @@ class ClickTrackerApp:
         self.root = root
         self.images: dict[str, "tk.PhotoImage | None"] = {}
         self.thumbs: dict[str, "tk.PhotoImage | None"] = {}
-        cw, ch = BG_SIZE
+        global LAYOUT
+        if not LAYOUT:
+            LAYOUT = _build_layout(OVERLAY_PATH, CLICK_OVERLAY_PATH)
+        self.bg_image = tk.PhotoImage(file=BACKGROUND_PATH)
+        self.bg_size = (self.bg_image.width(), self.bg_image.height())
+        cw, ch = self.bg_size
         self.canvas = tk.Canvas(root, width=cw, height=ch, bg="black", highlightthickness=0)
         self.canvas.pack()
-        self.bg_image = tk.PhotoImage(file=os.path.join(SPR, "background.png"))
         self.data: "dict | None" = None
         self.rom_hash: "str | None" = None
         self._status_after = None
@@ -359,6 +410,8 @@ class ClickTrackerApp:
             path = thumb_path(coord)
             if os.path.exists(path):
                 try:
+                    # map/*.png are 253x177 native -- subsample(3,3) -> ~84x59,
+                    # a close match to the overlay's green box size (~79x58).
                     self.thumbs[coord] = tk.PhotoImage(file=path).subsample(3, 3)
                 except tk.TclError:
                     self.thumbs[coord] = None
@@ -439,8 +492,8 @@ class ClickTrackerApp:
 
     def _flash_status(self, msg: str):
         self.render()
-        self.canvas.create_text(1920, BG_SIZE[1] - 40, text=msg, fill="yellow",
-                                 font=("Courier", 16), tags="status")
+        self.canvas.create_text(self.bg_size[0] // 2, self.bg_size[1] - 40, text=msg,
+                                 fill="yellow", font=("Courier", 16), tags="status")
         if self._status_after:
             self.root.after_cancel(self._status_after)
         self._status_after = self.root.after(2500, self.render)
@@ -466,7 +519,7 @@ class ClickTrackerApp:
         if img:
             self.canvas.create_image(x, y, image=img, anchor="nw")
 
-    def _draw_thumb(self, coord: str, x: int, y: int):
+    def _draw_thumb(self, coord: str, x: int, y: int, fallback_size: "tuple[int, int]"):
         """Unchanged from Rev 3 except the on-image label is now white text
         with a black outline (addendum Section 4) instead of a solid fill,
         for readability against the map art."""
@@ -483,96 +536,99 @@ class ClickTrackerApp:
         else:
             # Section 5's required fallback: no image asset -> plain text,
             # never a blank gap. (Not on-image, so no outline needed here.)
-            fw, fh = THUMB_SIZE
+            fw, fh = fallback_size
             self.canvas.create_rectangle(x, y, x + fw, y + fh, outline="white")
             self.canvas.create_text(x + fw // 2, y + fh // 2, text=coord,
                                      fill="white", font=("Courier", 12, "bold"))
 
-    def _draw_coord_slot(self, slot_id: str, section_id: str):
-        ax, ay = ANCHORS[slot_id]
-        rule = _CLICK_RULE[section_id]
-        ox, oy = rule["offset"]
-        w, h = rule["size"]
-        x1, y1 = ax + ox, ay + oy
-        self._add_region(x1, y1, x1 + w, y1 + h, lambda s=slot_id: self._on_slot_click(s))
+    def _draw_icon_at_box(self, box, on_img_name, off_img_name, on: bool, handler):
+        """Draws a toggle/button icon anchored at box's top-left corner,
+        using the icon's own rendered size (not the overlay box's size,
+        which only marks the anchor point -- these small icons/buttons are
+        painted much larger than their color-key marker box) for the
+        click region."""
+        x1, y1 = box[0], box[1]
+        img = self._img(on_img_name if on else off_img_name)
+        self._put(img, x1, y1)
+        w = img.width() if img else (box[2] - box[0])
+        h = img.height() if img else (box[3] - box[1])
+        self._add_region(x1, y1, x1 + w, y1 + h, handler)
 
+    def _draw_coord_slot(self, slot_id: str):
+        box = LAYOUT["coord_box"].get(slot_id)
         coords = (self.data["slots"].get(slot_id) or []) if self.data else []
-        if not coords:
+
+        # The icon itself (lilac overlay) is also clickable to log a new
+        # coordinate, in addition to the thumbnail-position box(es) below --
+        # same handler either way, just a second way to trigger it.
+        icon_box = LAYOUT["icon_click_box"].get(slot_id)
+        if icon_box is not None:
+            ix1, iy1, ix2, iy2 = icon_box
+            self._add_region(ix1, iy1, ix2, iy2, lambda s=slot_id: self._on_slot_click(s))
+
+        if box is not None:
+            # Single-capacity slot (levels, swords, stairs): one box, one
+            # coordinate at a time.
+            x1, y1, x2, y2 = box
+            self._add_region(x1, y1, x2, y2, lambda s=slot_id: self._on_slot_click(s))
+            if coords:
+                self._draw_thumb(coords[0], x1, y1, (x2 - x1, y2 - y1))
+                self._add_delete_region(x1, y1, x2, y2,
+                                         lambda s=slot_id: self._on_delete_entry(s, 0))
             return
-        tw, th = THUMB_SIZE
-        if CAPACITY[slot_id] == "single":
-            self._draw_thumb(coords[0], ax, ay)
-            self._add_delete_region(ax, ay, ax + tw, ay + th,
-                                     lambda s=slot_id: self._on_delete_entry(s, 0))
-        else:
-            # Multiple thumbnails: row out to the right of the anchor --
-            # rows in this layout are close enough together vertically that
-            # stacking downward would overlap the next slot.
-            tx = ax
-            for i, c in enumerate(coords):
-                self._draw_thumb(c, tx, ay)
-                self._add_delete_region(tx, ay, tx + tw, ay + th,
-                                         lambda s=slot_id, idx=i: self._on_delete_entry(s, idx))
-                tx += tw + 8
+
+        # Multi-capacity slot (shops, money_hint): 4 fixed boxes, one per
+        # possible FIFO position. Any of the 4 logs a new coordinate the
+        # same way; which specific one is clicked doesn't matter -- only
+        # which coordinates currently exist determines what's shown where.
+        boxes = LAYOUT["multi_coord_boxes"][slot_id]
+        for box in boxes:
+            x1, y1, x2, y2 = box
+            self._add_region(x1, y1, x2, y2, lambda s=slot_id: self._on_slot_click(s))
+        for i, coord in enumerate(coords):
+            x1, y1, x2, y2 = boxes[i]
+            self._draw_thumb(coord, x1, y1, (x2 - x1, y2 - y1))
+            self._add_delete_region(x1, y1, x2, y2,
+                                     lambda s=slot_id, idx=i: self._on_delete_entry(s, idx))
 
     def _draw_level_toggles(self, level: str):
-        ax, ay = LEVEL_ANCHORS[level]
         toggles = self.data["item_toggles"][level]
         quest = self.data["active_quest"]
 
         if level in LEVELS_WITH_HEART_TRIFORCE:
-            hx, hy = ax + HEART_OFFSET[0], ay + HEART_OFFSET[1]
-            heart_img = self._img("heartON.png" if toggles["heart"] else "heartOFF.png")
-            self._put(heart_img, hx, hy)
-            hw = heart_img.width() if heart_img else 52
-            hh = heart_img.height() if heart_img else 52
-            self._add_region(hx, hy, hx + hw, hy + hh,
-                              lambda lv=level: self._on_heart_triforce_click(lv, "heart"))
-
-            tx, ty = ax + TRIFORCE_OFFSET[0], ay + TRIFORCE_OFFSET[1]
-            tri_img = self._img("triforceON.png" if toggles["triforce"] else "triforceOFF.png")
-            self._put(tri_img, tx, ty)
-            tw = tri_img.width() if tri_img else 48
-            th = tri_img.height() if tri_img else 55
-            self._add_region(tx, ty, tx + tw, ty + th,
-                              lambda lv=level: self._on_heart_triforce_click(lv, "triforce"))
+            self._draw_icon_at_box(
+                LAYOUT["heart_box"][level], "heartON.png", "heartOFF.png",
+                toggles["heart"], lambda lv=level: self._on_heart_triforce_click(lv, "heart"))
+            self._draw_icon_at_box(
+                LAYOUT["triforce_box"][level], "triforceON.png", "triforceOFF.png",
+                toggles["triforce"],
+                lambda lv=level: self._on_heart_triforce_click(lv, "triforce"))
 
         items = QUEST_ITEMS[quest][level]
-        positions = [ITEM_POS_SINGLE] if len(items) == 1 else [ITEM_POS_FIRST, ITEM_POS_SECOND]
-        for i, (role, (ox, oy)) in enumerate(zip(items, positions)):
-            ix, iy = ax + ox, ay + oy
-            on = toggles["items"][i]
+        if len(items) == 1:
+            boxes = [LAYOUT["item_pos1_box"][level]]
+        else:
+            boxes = [LAYOUT["item_pos2a_box"][level], LAYOUT["item_pos2b_box"][level]]
+        for i, (role, box) in enumerate(zip(items, boxes)):
             letter = "F" if role == "floor" else "S"
-            img = self._img(f"{letter} on.png" if on else f"{letter} off.png")
-            self._put(img, ix, iy)
-            iw = img.width() if img else 47
-            ih = img.height() if img else 48
-            self._add_region(ix, iy, ix + iw, iy + ih,
-                              lambda lv=level, idx=i: self._on_item_click(lv, idx))
+            self._draw_icon_at_box(
+                box, f"{letter} on.png", f"{letter} off.png", toggles["items"][i],
+                lambda lv=level, idx=i: self._on_item_click(lv, idx))
 
     def _draw_quest_switcher(self):
         quest = self.data["active_quest"]
-        qx, qy = QUEST1_BUTTON_POS
-        img1 = self._img("1 on.png" if quest == 1 else "1 off.png")
-        self._put(img1, qx, qy)
-        w1 = img1.width() if img1 else 54
-        h1 = img1.height() if img1 else 62
-        self._add_region(qx, qy, qx + w1, qy + h1, lambda: self._on_quest_click(1))
-
-        qx, qy = QUEST2_BUTTON_POS
-        img2 = self._img("2 on.png" if quest == 2 else "2 off.png")
-        self._put(img2, qx, qy)
-        w2 = img2.width() if img2 else 62
-        h2 = img2.height() if img2 else 62
-        self._add_region(qx, qy, qx + w2, qy + h2, lambda: self._on_quest_click(2))
+        self._draw_icon_at_box(LAYOUT["quest_box"][1], "1 on.png", "1 off.png",
+                                quest == 1, lambda: self._on_quest_click(1))
+        self._draw_icon_at_box(LAYOUT["quest_box"][2], "2 on.png", "2 off.png",
+                                quest == 2, lambda: self._on_quest_click(2))
 
     def _draw_clear_button(self):
-        cx, cy = CLEAR_BUTTON_POS
+        x1, y1 = LAYOUT["clear_box"][0], LAYOUT["clear_box"][1]
         img = self._img("clear button.png")
-        self._put(img, cx, cy)
-        w = img.width() if img else 208
-        h = img.height() if img else 70
-        self._add_region(cx, cy, cx + w, cy + h, self._on_clear)
+        self._put(img, x1, y1)
+        w = img.width() if img else (LAYOUT["clear_box"][2] - x1)
+        h = img.height() if img else (LAYOUT["clear_box"][3] - y1)
+        self._add_region(x1, y1, x1 + w, y1 + h, self._on_clear)
 
     # ---- full render ----
 
@@ -583,9 +639,10 @@ class ClickTrackerApp:
 
         if waiting:
             self.canvas.create_text(
-                1920, 1080, text="Waiting for FCEUX connector...\n"
-                                  "(run click_tracker.lua in FCEUX > Lua)",
-                fill="white", font=("Courier", 28), justify="center",
+                self.bg_size[0] // 2, self.bg_size[1] // 2,
+                text="Waiting for FCEUX connector...\n"
+                     "(run click_tracker.lua in FCEUX > Lua)",
+                fill="white", font=("Courier", 20), justify="center",
             )
             self.root.title("Z1 Click Tracker -- waiting")
             return
@@ -593,9 +650,9 @@ class ClickTrackerApp:
         self.root.title(f"Z1 Click Tracker -- {self.data.get('rom_filename_at_creation', '')}")
         self.canvas.create_image(0, 0, image=self.bg_image, anchor="nw")
 
-        for section_id, section in SECTIONS.items():
+        for section in SECTIONS.values():
             for slot_id in section["slots"]:
-                self._draw_coord_slot(slot_id, section_id)
+                self._draw_coord_slot(slot_id)
 
         for level in LEVEL_IDS:
             self._draw_level_toggles(level)
@@ -617,8 +674,8 @@ class ClickTrackerApp:
                         f"ret($0526)=0x{d['ret']:02X}")
             else:
                 text = f"debug: ram.hex written {age_s} (no valid data)"
-        self.canvas.create_text(16, BG_SIZE[1] - 16, text=text,
-                                 fill="gray60", font=("Courier", 14), anchor="w")
+        self.canvas.create_text(16, self.bg_size[1] - 16, text=text,
+                                 fill="gray60", font=("Courier", 10), anchor="w")
 
 
 def main() -> int:
