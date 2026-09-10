@@ -46,7 +46,7 @@ MAP_DIR = os.path.join(SPR, "map")
 BACKGROUND_PATH = os.path.join(V2, "background.png")
 OVERLAY_PATH = os.path.join(V2, "overlaypositions.png")
 CLICK_OVERLAY_PATH = os.path.join(V2, "clickoverlay.png")
-RAM_FILE = os.path.join(HERE, "ram.bin")
+RAM_FILE = os.path.join(HERE, "ram.hex")
 ROM_INFO_FILE = os.path.join(HERE, "rom_info.json")
 RAM_SIZE = 0x800
 MULTI_CAP = 4
@@ -201,7 +201,7 @@ QUEST_ITEMS = {
 # ------------------------------------------------------------ RAM / coordinate
 
 def _read_ram_bytes(addrs: list[int]) -> "list[int] | None":
-    """Single-shot read of ram.bin; returns the byte at each requested
+    """Single-shot read of ram.hex; returns the byte at each requested
     address, or None if the file isn't there / isn't valid right now."""
     try:
         with open(RAM_FILE, "rb") as f:
@@ -222,8 +222,8 @@ def _translate(raw_byte: int) -> "str | None":
 
 
 STATUS_MESSAGES = {
-    "no_ram": "Not connected to FCEUX (ram.bin not found).",
-    "stale": "Not connected -- ram.bin hasn't updated recently "
+    "no_ram": "Not connected to FCEUX (ram.hex not found).",
+    "stale": "Not connected -- ram.hex hasn't updated recently "
              "(is the Lua connector running, in the right folder?).",
     "invalid": "Invalid position data from RAM.",
     "no_dungeon_return": "No known overworld square yet "
@@ -666,11 +666,11 @@ class ClickTrackerApp:
             age = d.get("age")
             age_s = f"{age:.1f}s ago" if age is not None else "no file"
             if "level" in d:
-                text = (f"debug: ram.bin written {age_s} | "
+                text = (f"debug: ram.hex written {age_s} | "
                         f"level=0x{d['level']:02X} EB=0x{d['eb']:02X} "
                         f"ret($0526)=0x{d['ret']:02X}")
             else:
-                text = f"debug: ram.bin written {age_s} (no valid data)"
+                text = f"debug: ram.hex written {age_s} (no valid data)"
         self.canvas.create_text(16, self.bg_size[1] - 16, text=text,
                                  fill="gray60", font=("Courier", 10), anchor="w")
 
